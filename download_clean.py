@@ -2,8 +2,9 @@ import os
 import json
 import re
 import glob
+import subprocess
 from yt_dlp import YoutubeDL
-from moviepy.editor import AudioFileClip  # ✅ FIXED: Use AudioFileClip
+from moviepy.editor import AudioFileClip
 from faster_whisper import WhisperModel
 
 def download_and_clean_transcript(
@@ -28,7 +29,7 @@ def download_and_clean_transcript(
         'skip_download': True,
         'writesubtitles': True,
         'writeautomaticsub': True,
-        'subtitleslangs': ['en-GB', 'en-US', 'en'],
+        'subtitleslangs': ['en-GB'],
         'subtitlesformat': 'json3',
         'quiet': True,
         'outtmpl': f'{output_dir}/%(id)s.%(ext)s',
@@ -79,38 +80,28 @@ def download_and_clean_transcript(
     # === No subtitles: fallback to Whisper ===
     set_status("⚠️ No subtitles found. Transcribing audio with Whisper...", 0.15)
 
+    audio_input_path = os.path.join(output_dir, f"{video_id}.m4a")
     audio_path = os.path.join(output_dir, f"{video_id}_audio.wav")
 
-    # === Download only audio ===
-    ydl_opts_audio = {
-    'format': 'bestaudio[ext=m4a]/bestaudio/best',
-    'outtmpl': os.path.join(output_dir, f"{video_id}.m4a"),
-    'quiet': True,
-    'nocheckcertificate': True,
-    'geo_bypass': True,
-    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': '*/*',
-        'Connection': 'keep-alive'
-    }
-}
-
-    info = ydl.extract_info(url, download=False)
-    for f in info['formats']:
-        print(f"{f['format_id']:>10} | {f.get('ext', ''):>4} | {f.get('acodec', ''):>6} | {f.get('vcodec', ''):>6}")
-
-    with YoutubeDL(ydl_opts_audio) as ydl_audio:
-        ydl_audio.download([url])
-    audio_input_path = os.path.join(output_dir, f"{video_id}.m4a")
-    set_status("Downloaded audio.", 0.25)
+    # === Download only audio via subprocess (fallback) ===
+    try:
+        subprocess.run([
+            "yt-dlp",
+            "-f", "bestaudio[ext=m4a]/bestaudio/best",
+            "-o", audio_input_path,
+            "--no-playlist",
+            url
+        ], check=True)
+        set_status("Downloaded audio via subprocess.", 0.25)
+    except subprocess.CalledProcessError as e:
+        set_status("❌ Audio download failed via subprocess.")
+        raise RuntimeError("Audio download failed.") from e
 
     # === Convert to WAV using AudioFileClip ===
     set_status("Converting audio...", 0.30)
-    audio_clip = AudioFileClip(audio_input_path)  # ✅ FIXED
+    audio_clip = AudioFileClip(audio_input_path)
     audio_clip.write_audiofile(audio_path, fps=16000, logger=None)
-    audio_duration = audio_clip.duration  # ✅ Use this since no video duration available
+    audio_duration = audio_clip.duration
     audio_clip.close()
 
     # === Load Whisper model ===
