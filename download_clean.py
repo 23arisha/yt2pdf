@@ -83,7 +83,7 @@ def download_and_clean_transcript(
 
     # === Download only audio ===
     ydl_opts_audio = {
-    'format': 'bestaudio/best',
+    'format': 'bestaudio[ext=m4a]/bestaudio/best,
     'outtmpl': os.path.join(output_dir, f"{video_id}.m4a"),
     'quiet': True,
     'nocheckcertificate': True,
@@ -97,6 +97,9 @@ def download_and_clean_transcript(
     }
 }
 
+    info = ydl.extract_info(url, download=False)
+    for f in info['formats']:
+        print(f"{f['format_id']:>10} | {f.get('ext', ''):>4} | {f.get('acodec', ''):>6} | {f.get('vcodec', ''):>6}")
 
     with YoutubeDL(ydl_opts_audio) as ydl_audio:
         ydl_audio.download([url])
