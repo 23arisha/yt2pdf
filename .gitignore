@@ -1,0 +1,6 @@
+yt_video/
+ytvenv/
+download.py
+hf_model_cache/
+.streamlit/
+__pycache__/
