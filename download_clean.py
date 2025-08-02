@@ -29,7 +29,7 @@ def download_and_clean_transcript(
         'skip_download': True,
         'writesubtitles': True,
         'writeautomaticsub': True,
-        'subtitleslangs': ['en', 'en-US', 'en-GB'],
+        'subtitleslangs': ['en-GB'],
         'subtitlesformat': 'json3',
         'quiet': True,
         'outtmpl': f'{output_dir}/%(id)s.%(ext)s',
