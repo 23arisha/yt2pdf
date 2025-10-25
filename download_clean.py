@@ -84,7 +84,7 @@ def download_and_clean_transcript(
 
     # === Download only audio ===
     ydl_opts_audio = {
-        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        'format': 'bestaudio/best',
         'outtmpl': os.path.join(output_dir, f"{video_id}.m4a"),
         'quiet': True,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
